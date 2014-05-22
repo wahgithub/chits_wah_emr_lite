@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<config>
+    <node>
+        <name>Generic RHU</name>
+        <code></code>
+        <telephone>2444284</telephone>
+        <level>self</level>
+        <hfid></hfid>
+    </node>
+    <node>
+        <name>Generic RHU</name>
+	<code></code>
+        <telephone>2444284</telephone>
+        <level>parent</level>        
+        <hfid></hfid>
+    </node>
+    <node>
+        <name>Generic RHU</name>
+	<code></code>
+        <telephone>2444284</telephone>
+        <level>child</level>
+        <hfid></hfid>
+    </node>
+</config>
