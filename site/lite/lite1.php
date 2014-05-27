@@ -140,7 +140,8 @@ function get_family_folders(){
 		foreach($family_arr as $key=>$family_id){
 			insert_family($family_id);
 			insert_family_cct($family_id);
-			insert_family_members($family_id);	//get the patient_id's
+			$patient_arr = insert_family_members($family_id);	//get the patient_id's
+			print_r($patient_arr);
 		}
 	endif;
 }
@@ -179,6 +180,8 @@ function insert_family_cct($family_id){
 }
 
 function insert_family_members($family_id){
+	$patient_arr = array(); 
+
 	$q_family_members = mysql_query("SELECT * FROM m_family_members WHERE family_id='$family_id'") or die("Cannot query 145: ".mysql_error());
 
 
@@ -187,7 +190,7 @@ function insert_family_members($family_id){
 
 		while($r_members = mysql_fetch_array($q_family_members)){
 			$insert_members = "INSERT INTO m_family_members (family_id,family_role,patient_id) VALUES ('$r_members[family_id]','$r_members[family_role]','$r_members[family_role]','$r_members[patient_id]');";
-			
+			array_push($patient_arr,$r_members["patient_id"]);		
 			fwrite($handle,$insert_members."\n");
 		}
 
@@ -195,6 +198,8 @@ function insert_family_members($family_id){
 	else:
 
 	endif;
+
+	return $patient_arr;
 }
 
 ?>
