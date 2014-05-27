@@ -104,13 +104,18 @@ function extract_patient_folder_consults(){
 	}
 
 	$_SESSION["arr_table"] = $arr_table;
-
-	get_family_folders();	//return the patient_ids
+	
+	if(isset($_POST["sel_barangay"])):
+		get_family_folders();	//return the patient_ids
+	else:
+		echo "Please select barangay/s.";
+	endif;
 }
 
 function get_family_folders(){
 	$patient_arr = array();	//stores the patient_id's
-	
+	$family_arr = array();
+
 	if(in_array('all',$_POST["sel_barangay"])): 
 		$q_family_address = mysql_query("SELECT * FROM m_family_address");
 	else: 
@@ -126,11 +131,69 @@ function get_family_folders(){
 
 		while($r_family=mysql_fetch_array($q_family_address)){
 			$insert_family_address = "INSERT INTO m_family_address (family_id,address_year,address,barangay_id) VALUES ('$r_family[family_id]','$r_family[address_year]','$r_family[address]','$r_family[barangay_id]');";
-			
+			array_push($family_arr,$r_family["family_id"]);
 			fwrite($handle,$insert_family_address."\n"); 
 		}
 
 		fclose($handle);
+
+		foreach($family_arr as $key=>$family_id){
+			insert_family($family_id);
+			insert_family_cct($family_id);
+			insert_family_members($family_id);	//get the patient_id's
+		}
+	endif;
+}
+
+
+function insert_family($family_id){
+	$q_family = mysql_query("SELECT * FROM m_family WHERE family_id='$family_id'") or die("Cannot query 145: ".mysql_error());
+
+	if(mysql_num_rows($q_family)!=0):
+		$handle = fopen($_SESSION["tmp_directory"].'/'.$_SESSION["file_name"],'a') or die("Cannot open file 148");
+
+		while($r_family=mysql_fetch_array($q_family)){
+			$insert_family = "INSERT INTO family (family_id,head_patient_id) VALUES ('$r_family[family_id]','$r_family[head_patient_id]');";
+
+			fwrite($handle,$insert_family."\n"); 
+		}
+
+		fclose($handle);
+	endif;
+
+}
+
+function insert_family_cct($family_id){
+	$q_family_cct = mysql_query("SELECT * FROM m_family_cct_member WHERE family_id='$family_id'") or die("Cannot query 145: ".mysql_error());
+
+	if(mysql_num_rows($q_family_cct)!=0){
+		$handle = fopen($_SESSION["tmp_directory"].'/'.$_SESSION["file_name"],'a') or die("Cannot open file 165");
+
+		while($r_cct = mysql_fetch_array($q_family_cct)){
+			$insert_cct = "INSERT INTO m_family_cct_members (cct_id,family_id,date_enroll,last_updated) VALUES ('$r_cct[cct_id]','$r_cct[family_id]','$r_cct[date_enroll]','$r_cct[last_updated]');";
+			fwrite($handle,$insert_cct."\n");
+		}
+	
+		fclose($handle);
+	}
+}
+
+function insert_family_members($family_id){
+	$q_family_members = mysql_query("SELECT * FROM m_family_members WHERE family_id='$family_id'") or die("Cannot query 145: ".mysql_error());
+
+
+	if(mysql_num_rows($q_family_members)!=0):
+		$handle = fopen($_SESSION["tmp_directory"].'/'.$_SESSION["file_name"],'a') or die("Cannot open file 186");
+
+		while($r_members = mysql_fetch_array($q_family_members)){
+			$insert_members = "INSERT INTO m_family_members (family_id,family_role,patient_id) VALUES ('$r_members[family_id]','$r_members[family_role]','$r_members[family_role]','$r_members[patient_id]');";
+			
+			fwrite($handle,$insert_members."\n");
+		}
+
+		fclose($handle);
+	else:
+
 	endif;
 }
 
