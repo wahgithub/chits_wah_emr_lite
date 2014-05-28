@@ -52,7 +52,7 @@ function process_submission(){
 	$_SESSION["tmp_directory"] = '../../sql/';
 	$_SESSION["file_name"] = 'record_push_'.$_POST["sel_user"].'_'.date('Y-m-d').'.sql';
 
-	print_r($_POST);
+	//print_r($_POST);
 	create_tmp_sql_file();
 
 	extract_users($_POST["sel_user"]);		
@@ -90,9 +90,10 @@ function extract_users($user_id){
 }
 
 function extract_patient_folder_consults(){
-	$tables_for_export = array('consult','family','patient','dental'); //list the tables of which selection will be based on the barangays. For other tables, Export ALL records
+	$tables_for_export = array('consult','patient','dental'); //list the tables of which selection will be based on the barangays. For other tables, Export ALL records
 	
 	$arr_table = array(); //this shall contain all the tables that passes through the filter
+	$patient_arr = array();
 
 	$get_tables = mysql_query("SHOW TABLES FROM ".$_SESSION["dbname"]) or die("Cannot query 93: ".mysql_error());
 
@@ -106,10 +107,15 @@ function extract_patient_folder_consults(){
 	$_SESSION["arr_table"] = $arr_table;
 	
 	if(isset($_POST["sel_barangay"])):
-		get_family_folders();	//return the patient_ids
+		$patient_arr = get_family_folders();	//return the patient_ids
+		get_patient_records($patient_arr);
+		
 	else:
 		echo "Please select barangay/s.";
 	endif;
+
+	
+
 }
 
 function get_family_folders(){
@@ -141,9 +147,10 @@ function get_family_folders(){
 			insert_family($family_id);
 			insert_family_cct($family_id);
 			$patient_arr = insert_family_members($family_id);	//get the patient_id's
-			print_r($patient_arr);
 		}
 	endif;
+
+	return $patient_arr;
 }
 
 
@@ -200,6 +207,54 @@ function insert_family_members($family_id){
 	endif;
 
 	return $patient_arr;
+}
+
+
+function get_patient_records($patient_arr){ 
+	foreach($_SESSION["arr_table"] as $key=>$table_name){
+		$check_field = mysql_query("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='$_SESSION[dbname]' AND TABLE_NAME='$table_name' AND COLUMN_NAME='patient_id'") or die("Cannot query 215: ".mysql_error());
+
+		if(mysql_num_rows($check_field)!=0):
+			$arr_fields = array();
+
+
+			$get_cols = mysql_query("SHOW COLUMNS FROM $table_name") or die("Cannot query 218: ".mysql_error());
+			
+			while($arr_table = mysql_fetch_array($get_cols)){ //print_r($arr_table);
+				array_push($arr_fields,$arr_table["Field"]);
+			}
+
+			//print_r($arr_fields);
+			$str_fields = implode(",",$arr_fields);
+
+			foreach($patient_arr as $key=>$patient_id){  
+				$get_records = mysql_query("SELECT * FROM $table_name WHERE patient_id='$patient_id'") or die("Cannot query 218: ".mysql_error());
+
+				if(mysql_num_rows($get_records)!=0):
+					//get the fields of the table
+					while($r_records = mysql_fetch_array($get_records)){ 
+						$handle = fopen($_SESSION["tmp_directory"].'/'.$_SESSION["file_name"],'a') or die("Cannot open file 236");
+						
+						$arr_fields_result = array(); 
+
+						$insert_records = "INSERT INTO $table_name ($str_fields) VALUES (";
+						foreach($arr_fields as $key=>$field_name){
+							array_push($arr_fields_result,"'".$r_records[$field_name]."'");
+						} 
+						$str_fields_results = implode(",",$arr_fields_result);
+
+						$insert_records = $insert_records.$str_fields_results.");";
+
+						fwrite($handle,$insert_records."\n");
+					}
+					
+					fclose($handle);
+
+				endif;
+			}
+		endif;
+	}
+
 }
 
 ?>
