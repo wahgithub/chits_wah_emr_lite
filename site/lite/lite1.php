@@ -57,6 +57,7 @@ function process_submission(){
 
 	extract_users($_POST["sel_user"]);		
 	extract_patient_folder_consults();
+	extract_brgy();
 }
 
 
@@ -78,9 +79,21 @@ function extract_users($user_id){
 			$insert_user = '';
 			$handle = fopen($_SESSION["tmp_directory"].'/'.$_SESSION["file_name"],'a') or die("Cannot open file 78");
 		while($r_user=mysql_fetch_array($q_user)){ //print_r($r_user);
-			$insert_user = "INSERT INTO game_user (user_id,user_lastname,user_firstname,user_middle,user_dob,user_gender,user_role,user_admin,user_login,user_password,user_lang,user_email,user_cellular,user_pin,user_active,user_receive_sms) VALUES ('$r_user[user_id]','$r_user[user_lastname]','$r_user[user_firstname]','$r_user[user_middle]','$r_user[user_dob]','$r_user[user_gender]','$r_user[user_role]','$r_user[user_admin]','$r_user[user_login]','$r_user[user_password]','$r_user[user_lang]','$r_user[user_email]','$r_user[user_cellular]','$r_user[user_pin]','$r_user[user_active]','$r_user[user_receive_sms]')".';';
+			if($r_user["user_admin"]=='N'):	//include only the non-admin accounts
+
+			$insert_user = "REPLACE INTO game_user (user_id,user_lastname,user_firstname,user_middle,user_dob,user_gender,user_role,user_admin,user_login,user_password,user_lang,user_email,user_cellular,user_pin,user_active,user_receive_sms) VALUES ('$r_user[user_id]','$r_user[user_lastname]','$r_user[user_firstname]','$r_user[user_middle]','$r_user[user_dob]','$r_user[user_gender]','$r_user[user_role]','$r_user[user_admin]','$r_user[user_login]','$r_user[user_password]','$r_user[user_lang]','$r_user[user_email]','$r_user[user_cellular]','$r_user[user_pin]','$r_user[user_active]','$r_user[user_receive_sms]')".';';			
 			
 			fwrite($handle,$insert_user."\n"); 
+
+			$clear_user_privilege = "DELETE FROM modules_user_location WHERE user_id='$r_user[user_id]';";
+
+			fwrite($handle,$clear_user_privilege."\n");
+
+			$modify_user_privilege = "REPLACE INTO modules_user_location (location_id,user_id) VALUES ('ADM','$r_user[user_id]');";
+
+			fwrite($handle,$modify_user_privilege."\n");
+
+			endif;
 		}
 
 			fclose($handle);
@@ -136,7 +149,7 @@ function get_family_folders(){
 		$handle = fopen($_SESSION["tmp_directory"].'/'.$_SESSION["file_name"],'a') or die("Cannot open file 124");
 
 		while($r_family=mysql_fetch_array($q_family_address)){
-			$insert_family_address = "INSERT INTO m_family_address (family_id,address_year,address,barangay_id) VALUES ('$r_family[family_id]','$r_family[address_year]','$r_family[address]','$r_family[barangay_id]');";
+			$insert_family_address = "REPLACE INTO m_family_address (family_id,address_year,address,barangay_id) VALUES ('$r_family[family_id]','$r_family[address_year]','$r_family[address]','$r_family[barangay_id]');";
 			array_push($family_arr,$r_family["family_id"]);
 			fwrite($handle,$insert_family_address."\n"); 
 		}
@@ -161,7 +174,7 @@ function insert_family($family_id){
 		$handle = fopen($_SESSION["tmp_directory"].'/'.$_SESSION["file_name"],'a') or die("Cannot open file 148");
 
 		while($r_family=mysql_fetch_array($q_family)){
-			$insert_family = "INSERT INTO family (family_id,head_patient_id) VALUES ('$r_family[family_id]','$r_family[head_patient_id]');";
+			$insert_family = "REPLACE INTO m_family (family_id,head_patient_id) VALUES ('$r_family[family_id]','$r_family[head_patient_id]');";
 
 			fwrite($handle,$insert_family."\n"); 
 		}
@@ -178,7 +191,7 @@ function insert_family_cct($family_id){
 		$handle = fopen($_SESSION["tmp_directory"].'/'.$_SESSION["file_name"],'a') or die("Cannot open file 165");
 
 		while($r_cct = mysql_fetch_array($q_family_cct)){
-			$insert_cct = "INSERT INTO m_family_cct_members (cct_id,family_id,date_enroll,last_updated) VALUES ('$r_cct[cct_id]','$r_cct[family_id]','$r_cct[date_enroll]','$r_cct[last_updated]');";
+			$insert_cct = "REPLACE INTO m_family_cct_member (cct_id,family_id,date_enroll,last_updated) VALUES ('$r_cct[cct_id]','$r_cct[family_id]','$r_cct[date_enroll]','$r_cct[last_updated]');";
 			fwrite($handle,$insert_cct."\n");
 		}
 	
@@ -196,7 +209,7 @@ function insert_family_members($family_id){
 		$handle = fopen($_SESSION["tmp_directory"].'/'.$_SESSION["file_name"],'a') or die("Cannot open file 186");
 
 		while($r_members = mysql_fetch_array($q_family_members)){
-			$insert_members = "INSERT INTO m_family_members (family_id,family_role,patient_id) VALUES ('$r_members[family_id]','$r_members[family_role]','$r_members[family_role]','$r_members[patient_id]');";
+			$insert_members = "REPLACE INTO m_family_members (family_id,family_role,patient_id) VALUES ('$r_members[family_id]','$r_members[family_role]','$r_members[patient_id]');";
 			array_push($patient_arr,$r_members["patient_id"]);		
 			fwrite($handle,$insert_members."\n");
 		}
@@ -237,7 +250,7 @@ function get_patient_records($patient_arr){
 						
 						$arr_fields_result = array(); 
 
-						$insert_records = "INSERT INTO $table_name ($str_fields) VALUES (";
+						$insert_records = "REPLACE INTO $table_name ($str_fields) VALUES (";
 						foreach($arr_fields as $key=>$field_name){
 							array_push($arr_fields_result,"'".$r_records[$field_name]."'");
 						} 
@@ -256,5 +269,46 @@ function get_patient_records($patient_arr){
 	}
 
 }
+
+function extract_brgy(){
+	if(in_array('all',$_POST["sel_barangay"])):
+		$q_brgy = mysql_query("SELECT * FROM m_lib_barangay") or die("Cannot query 265: ".mysql_error());		
+
+		$q_population = mysql_query("SELECT * FROM m_lib_population") or die("CAnnot query: 267".mysql_error());
+	else:
+		$str_brgy = "'".implode("','",$_POST["sel_barangay"])."'";
+		$q_brgy = mysql_query("SELECT * FROM m_lib_barangay WHERE barangay_id IN ($str_brgy)") or die("Cannot query 268: ".mysql_error());
+
+		$q_population = mysql_query("SELECT * FROM m_lib_population WHERE barangay_id IN ($str_brgy)") or die("Cannot query: 267".mysql_error());
+
+	endif;
+	
+	if(mysql_num_rows($q_brgy)!=0):
+		$handle = fopen($_SESSION["tmp_directory"].'/'.$_SESSION["file_name"],'a') or die("Cannot open file 278");
+
+		while($r_brgy = mysql_fetch_array($q_brgy)){
+			$insert_brgy = "INSERT INTO m_lib_barangay (barangay_id,barangay_name,barangay_population,area_code) VALUES ('$r_brgy[barangay_id]','$r_brgy[barangay_name]','$r_brgy[barangay_population]','$r_brgy[area_code]');";
+
+			fwrite($handle,$insert_brgy."\n");
+		}
+
+		fclose($handle);
+	endif;
+	
+	if(mysql_num_rows($q_population)!=0):
+		while($r_population = mysql_fetch_array($q_population)){
+			$handle = fopen($_SESSION["tmp_directory"].'/'.$_SESSION["file_name"],'a') or die("Cannot open file 290");
+
+			$insert_population = "INSERT INTO m_lib_population (population_id,barangay_id,population,population_year) VALUES ('$r_population[population_id]','$r_population[barangay_id]','$r_population[population]','$r_population[population_year]');" ;
+
+			fwrite($handle,$insert_population."\n");
+		}
+		
+		fclose($handle);
+
+	endif;
+
+}
+
 
 ?>
