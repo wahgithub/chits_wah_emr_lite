@@ -51,6 +51,7 @@ function show_connection_details(){
 function process_submission(){
 	$_SESSION["tmp_directory"] = '../../sql/';
 	$_SESSION["file_name"] = 'record_push_'.$_POST["sel_user"].'_'.date('Y-m-d').'.sql';
+	$_SESSION["ehr_lite_live"] = 'ehr_lite_live.sql';
 
 	//print_r($_POST);
 	create_tmp_sql_file();
@@ -58,6 +59,7 @@ function process_submission(){
 	extract_users($_POST["sel_user"]);		
 	extract_patient_folder_consults();
 	extract_brgy();
+	create_ehr_lite_sql();
 }
 
 
@@ -310,5 +312,21 @@ function extract_brgy(){
 
 }
 
+function create_ehr_lite_sql(){
+
+	if(copy('../../db/'.$_SESSION["ehr_lite_live"],$_SESSION["tmp_directory"].'/ehr_lite_import.sql')):
+		$ehr_lite_import = fopen($_SESSION["tmp_directory"].'/ehr_lite_import.sql','a') or die("Cannot open file 320");
+
+		$replace_insert_file = file($_SESSION["tmp_directory"].'/'.$_SESSION["file_name"]);
+
+
+		foreach($replace_insert_file as $key=>$value){
+			fwrite($ehr_lite_import,$value);
+		}
+
+	else:
+		echo "<font color='red'>Cannot create SQL files for import to EHR-lite.</font>";
+	endif;
+}
 
 ?>
