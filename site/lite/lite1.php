@@ -8,7 +8,7 @@ if(isset($_SESSION["userid"])):
 		process_submission();
 	endif;
 	if($_POST["submit_export"]):
-		print_r($_POST);
+		//print_r($_POST);
 		sync_file();
 
 	endif;
@@ -57,6 +57,7 @@ function process_submission(){
 	$_SESSION["tmp_directory"] = '../../sql/';
 	$_SESSION["file_name"] = 'record_push_'.$_POST["sel_user"].'_'.date('Y-m-d').'.sql';
 	$_SESSION["ehr_lite_live"] = 'ehr_lite_live.sql';
+	$_SESSION["ehr_lite_import"] = 'ehr_lite_import.sql';
 
 	//print_r($_POST);
 	create_tmp_sql_file();
@@ -71,8 +72,8 @@ function process_submission(){
 }
 
 
-function create_tmp_sql_file(){
-	if($handle = fopen($_SESSION["tmp_directory"].$_SESSION["file_name"],'w') or die("Cannot write file 67")):
+function create_tmp_sql_file(){ echo $_SESSION["tmp_directory"].$_SESSION["file_name"];
+	if($handle = fopen($_SESSION["tmp_directory"].$_SESSION["file_name"],'w') or die("Cannot write file 67")): 
 		chmod($_SESSION["tmp_directory"].$_SESSION["file_name"],0766);
 	endif;	
 }
@@ -321,8 +322,8 @@ function extract_brgy(){
 
 function create_ehr_lite_sql(){
 
-	if(copy('../../db/'.$_SESSION["ehr_lite_live"],$_SESSION["tmp_directory"].'/ehr_lite_import.sql')):
-		$ehr_lite_import = fopen($_SESSION["tmp_directory"].'/ehr_lite_import.sql','a') or die("Cannot open file 320");
+	if(copy('../../db/'.$_SESSION["ehr_lite_live"],$_SESSION["tmp_directory"].$_SESSION["ehr_lite_import"])): 
+		$ehr_lite_import = fopen($_SESSION["tmp_directory"].$_SESSION["ehr_lite_import"],'a') or die("Cannot open file 320");
 
 		$replace_insert_file = file($_SESSION["tmp_directory"].'/'.$_SESSION["file_name"]);
 
@@ -340,7 +341,7 @@ function create_ehr_lite_sql(){
 function load_import_file(){
 		echo "<table border='1' width='50%'>";
 		echo "<tr><tr><td>";
-		echo "EHR-lite import file is generated and can be downloaded&nbsp;<a href='$_SESSION[tmp_directory]ehr_lite_import.sql'>HERE</a>. You can manually upload this import file to the EHR-lite computer.";
+		echo "EHR-lite import file is generated and can be downloaded&nbsp;<a href='$_SESSION[tmp_directory]$_SESSION[ehr_lite_import]'>HERE</a>. You can manually upload this import file to the EHR-lite computer.";
 		echo "</td></tr>";
 		echo "<tr><td align='center'><b>OR</b></td></tr>";
 
@@ -404,12 +405,26 @@ function sync_file(){
 
 		if(file_exists('/var/www/backup/ehrlite_backup.'.$_POST["txt_initial"].'.'.date('Ymd').'.sql')):
 			if(filesize('/var/www/backup/ehrlite_backup.'.$_POST["txt_initial"].'.'.date('Ymd').'.sql')>0):
-
-					$str_rename_db = 'mysql -h '.$_POST["txt_ip"].' -u '.$_POST["txt_dbname"].' -p'.$_POST["txt_dbpwd"].' '.$_POST["txt_db"].'_'.date('Ymd'). xxx
-
-					$str_export = 'mysql -h '.$_POST["txt_ip"].' -u '.$_POST["txt_dbname"].' -p'.$_POST["txt_dbpwd"].' '.$_POST["txt_db"].' < '.$_SESSION["tmp_directory"].$_SESSION["ehr_lite_live"];
-
+					
+					//this code block does a timestampped mirror of the database in the ehr-lite
+					$str_rename_db = 'mysql -h '.$_POST["txt_ip"].' -u '.$_POST["txt_dbname"].' -p'.$_POST["txt_dbpwd"].' --execute "DROP DATABASE IF EXISTS '.$_POST["txt_db"].'_'.date('Ymd').'; '.'CREATE DATABASE '.$_POST["txt_db"].'_'.date('Ymd').';"';
+					//echo $str_rename_db;
+					exec($str_rename_db);					
+					$str_export = 'mysql -h '.$_POST["txt_ip"].' -u '.$_POST["txt_dbname"].' -p'.$_POST["txt_dbpwd"].' '.$_POST["txt_db"].'_'.date('Ymd').' < /var/www/backup/ehrlite_backup.'.$_POST["txt_initial"].'.'.date('Ymd').'.sql';										
+					//echo $str_export;
 					exec($str_export);
+
+
+					//this code block drops the ehr_lite_live database, re-creates and dumps the updated database
+					$str_drop_db = 'mysql -h '.$_POST["txt_ip"].' -u '.$_POST["txt_dbname"].' -p'.$_POST["txt_dbpwd"].' --execute "DROP DATABASE IF EXISTS '.$_POST["txt_db"].'; '.'CREATE DATABASE '.$_POST["txt_db"].';"';
+
+					$str_export_lite = 'mysql -h '.$_POST["txt_ip"].' -u '.$_POST["txt_dbname"].' -p'.$_POST["txt_dbpwd"].' '.$_POST["txt_db"].' < '.$_SESSION["tmp_directory"].$_SESSION["ehr_lite_import"];
+
+					exec($str_drop_db);
+					exec($str_export_lite);
+			else:
+				echo 'Database import not successful. Please re-sync again.';
+	
 			endif;
 		endif;
 
