@@ -72,7 +72,7 @@ function process_submission(){
 }
 
 
-function create_tmp_sql_file(){ echo $_SESSION["tmp_directory"].$_SESSION["file_name"];
+function create_tmp_sql_file(){
 	if($handle = fopen($_SESSION["tmp_directory"].$_SESSION["file_name"],'w') or die("Cannot write file 67")): 
 		chmod($_SESSION["tmp_directory"].$_SESSION["file_name"],0766);
 	endif;	
@@ -422,8 +422,14 @@ function sync_file(){
 
 					exec($str_drop_db);
 					exec($str_export_lite);
+
+					echo "<script language='Javascript'>";
+					echo "window.alert('Sync and file import completed. Please check the EHR-lite computer if the database was successfuly been loaded.')";
+					echo "</script>";
 			else:
-				echo 'Database import not successful. Please re-sync again.';
+					echo "<script language='Javascript'>";
+					echo "window.alert('Sync and file import not completed. Please check information you entered and re-sync again.')";
+					echo "</script>";
 	
 			endif;
 		endif;
